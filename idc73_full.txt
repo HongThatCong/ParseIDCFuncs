@@ -1,5 +1,4 @@
-1031E1C8: ExtIDCFuncTable
-.text:0000000010020E20: ____(VT_VOID)
+.data:000000001031E1C8: ExtIDCFuncTable
 .text:000000001001D6C0: selector_by_name(VT_STR2)
 .text:000000001001D700: to_ea(VT_LONG, VT_LONG)
 .text:000000001001D710: create_insn(VT_LONG)
