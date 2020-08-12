@@ -1,5 +1,6 @@
 // IDA v7.3.190614 ida.dll
 // HTC - VinCSS
+.data:000000001031E1C0: IDCFuncs
 .data:000000001031E1C8: ExtIDCFuncTable
 .text:000000001001D6C0: selector_by_name(VT_STR2)
 .text:000000001001D700: to_ea(VT_LONG, VT_LONG)
