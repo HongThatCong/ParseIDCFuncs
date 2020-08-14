@@ -133,13 +133,13 @@ static ParseExtIDCFuncAt(ia)
         set_name(ia, "@ext_idcfunc_t@" + extfun.name, 0);   // nen replace '.' thanh '@'
 
     // ext_idcfunc_t: *fptr
-    // fptr prototype: __int64 idaapi idc_func_t(idc_value_t *argv, idc_value_t *r);
+    // fptr prototype: __int64 idaapi idc_func_t(idc_value_t *argv, idc_value_t *ret);
     // All idcfunc_xxx always have this prototype - HTC
     ptr = get_qword(ia + 8);
     extfun.fptr = ptr;
     add_func(extfun.fptr, BADADDR);
     set_name(extfun.fptr, "idcfunc_" + extfun.name);
-    apply_type(extfun.fptr, "__int64 __fastcall idcfunc_" + extfun.name + "(idc_value_t *argv, idc_value_t *r);");
+    apply_type(extfun.fptr, "__int64 __fastcall idcfunc_" + extfun.name + "(idc_value_t *argv, idc_value_t *ret);");
 
     // ext_idcfunc_t: *args
     ptr = get_qword(ia + 0x10);
@@ -342,8 +342,9 @@ static add_ext_idcfunc_t_struct()
 
         // FIXME
         // internal housekeeping: 64-bit qstring is bigger than 12 bytes
-        // HTC - sizeof(qstring) = ??, need VC compiler, but I am lazy, so I assumed it is 16
-        add_struc_member(id, "reserve", 0, FF_BYTE | FF_DATA,   -1, 16);
+        // HTC - sizeof(qstring) = sizeof(qvector<char>), qvector<char> = { char *T, size_t n, size_t alloc }
+        // On x64 = 24
+        add_struc_member(id, "reserve", 0, FF_BYTE | FF_DATA,   -1, 24);
     }
 
     id = get_struc_id("idc_value_t");
