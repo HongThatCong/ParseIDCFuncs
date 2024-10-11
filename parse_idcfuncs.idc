@@ -1,8 +1,9 @@
 // Laisanh: beerware license, free to uses, mods, changes. Don't care :D
 // Parse IDCFuncs in ida.dll/ida64.dll (IDA 7.x 64 bit)
 // Org code: Unknown (can be redplait)
-// Port to IDC 7.x, fixed, extended by HTC - VinCSS (a member of Vingroup)
+// Port to IDC 7.x, fixed, extended by HTC @VCS
 // 11/08/2020 - ver 0.1
+// 11/10/2024 - ver 0.2
 
 #include <idc.idc>
 
@@ -33,22 +34,32 @@ static GetExtFunFlags(flags)
     auto s = "";
 
     if (EXTFUN_BASE == (flags & EXTFUN_BASE))
+    {
         s = "EXTFUN_BASE";
+    }
 
     if (EXTFUN_NORET == (flags & EXTFUN_NORET))
     {
         if (strlen(s) > 0)
+        {
             s = s + " | EXTFUN_NORET";
+        }
         else
+        {
             s = "EXTFUN_NORET";
+        }
     }
 
     if (EXTFUN_SAFE == (flags & EXTFUN_SAFE))
     {
         if (strlen(s) > 0)
+        {
             s = s + " | EXTFUN_SAFE";
+        }
         else
+        {
             s = "EXTFUN_SAFE";
+        }
     }
 
     return s;
@@ -59,7 +70,9 @@ static GetIDCFuncFlags(ea)
     auto flags = 0;
 
     if (ea)
+    {
         flags = get_wide_dword(ea);
+    }
 
     return GetExtFunFlags(flags);
 }
@@ -93,7 +106,9 @@ static GetIDCFuncArgs(ea)
     {
         b = get_wide_byte(ia);
         if (0 == b)
+        {
             return "VT_VOID";
+        }
 
         while (1)
         {
@@ -103,9 +118,13 @@ static GetIDCFuncArgs(ea)
             ia = ia + 1;
             b = get_wide_byte(ia);
             if (0 == b)
+            {
                 break;
+            }
             else
+            {
                 args = args + ", ";
+            }
         }
     }
 
@@ -127,10 +146,25 @@ static ParseExtIDCFuncAt(ia)
     del_items(ptr, DELIT_SIMPLE, strlen(extfun.name) + 1);
     create_strlit(ptr, BADADDR);
     strCmt = "IDC name: " + extfun.name;
-    if ("" != get_name(ia))
+    if (has_user_name(get_flags(ia)))
+    {
         set_cmt(ia, "ext_idcfunc_t::" + extfun.name, 0);
+    }
     else
-        set_name(ia, "@ext_idcfunc_t@" + extfun.name, 0);   // nen replace '.' thanh '@'
+    {
+        // replace '.' by '@'
+        auto new_name = extfun.name;
+        auto idx, len = strlen(new_name);
+        for (idx = 0; idx < len; ++idx)
+        {
+            if ("." == new_name[idx])
+            {
+                new_name[idx] = "@";
+            }
+            msg("%s\n", new_name);
+        }
+        set_name(ia, "@ext_idcfunc_t@" + new_name, 0);
+    }
 
     // ext_idcfunc_t: *fptr
     // fptr prototype: __int64 idaapi idc_func_t(idc_value_t *argv, idc_value_t *ret);
@@ -165,13 +199,18 @@ static ParseExtIDCFuncAt(ia)
     // ext_idcfunc_t: flags
     extfun.flags = GetIDCFuncFlags(ia + 0x24);
     if ("" != extfun.flags)
+    {
         strCmt = strCmt + "\nFunction flags: " + extfun.flags;
+    }
 
     set_func_cmt(extfun.fptr, strCmt, 0);
 
     msg("%s: %s(%s)", atoa(extfun.fptr), extfun.name, extfun.args);
     if (extfun.ndefvals > 0)
+    {
         msg(", ndefvals = %d, defvals: %s", extfun.ndefvals, extfun.defvals);
+    }
+
     msg("\n");
 
     return 1;
@@ -188,8 +227,11 @@ static ParseExtIDCFuncTable(ea, count)
 
     if (ea && count)
     {
-        for (ia; ia < ea + count * 8 * 5; ia = ia + 8 * 5)
+        for (ia; ia < ea + count * 0x28; ia = ia + 0x28)
+        {
             ParseExtIDCFuncAt(ia);
+        }
+
         return 1;
     }
 
@@ -308,6 +350,8 @@ static add_ext_idcfunc_t_struct()
 
         add_struc_member(id, "flags", -1, FF_DATA | FF_DWORD, -1, 4);
         set_member_cmt(id, 36, "EXTFUN_ Function description flags", 1);
+
+        msg("Add struct ext_idcfunc_t done\n");
     }
 
     id = get_enum("idc_value_t_vtype");
@@ -326,6 +370,8 @@ static add_ext_idcfunc_t_struct()
         add_enum_member(id, "VT_PVOID", 0x8, -1);
         add_enum_member(id, "VT_INT64", 0x9, -1);
         add_enum_member(id, "VT_REF", 0xA, -1);
+
+        msg("Add enum idc_value_t_vtype done\n");
     }
 
     id = get_struc_id("idc_value_t::union");
@@ -345,6 +391,8 @@ static add_ext_idcfunc_t_struct()
         // HTC - sizeof(qstring) = sizeof(qvector<char>), qvector<char> = { char *T, size_t n, size_t alloc }
         // On x64 = 24
         add_struc_member(id, "reserve", 0, FF_BYTE | FF_DATA,   -1, 24);
+
+        msg("Add struct idc_value_t::union done\n");
     }
 
     id = get_struc_id("idc_value_t");
@@ -353,6 +401,8 @@ static add_ext_idcfunc_t_struct()
         id = add_struc(-1, "idc_value_t", 0);
         add_struc_member(id, "vtype", 0, FF_BYTE | FF_DATA, -1, 1); // align default on x64 is 8
         add_struc_member(id, "u", 0x8, FF_STRUCT | FF_DATA, get_struc_id("idc_value_t::union"), 16);
+
+        msg("Add struct idc_value_t done\n");
     }
 
     return 1;
@@ -376,7 +426,9 @@ static main()
             return 1;
         }
         else
+        {
             return 0;
+        }
     }
     else
     {
